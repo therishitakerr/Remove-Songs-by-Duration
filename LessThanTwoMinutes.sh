@@ -2,7 +2,7 @@
 
 Folder()
 {
-	path=$1
+	path="$1"
 	
 	if [[ -d "$path" ]] && [[ $path != "toberemoved" ]] ; then
 		for file in "$path/"*
@@ -28,4 +28,4 @@ Folder()
 }
 
 dir=$(pwd)
-Folder $dir
+Folder "$dir"
