@@ -1,37 +1,30 @@
 #!/bin/bash
 
-# Function to process files and directories
-process_folder() {
-    local path="$1"
-    local flag=2
+toberemoved="$(pwd)/toberemoved"
+mkdir -p "$toberemoved"
 
-    # Check if the path is a directory
-    if [[ -d "$path" && "$path" != "$(pwd)/toberemoved" ]]; then
-        # Recursively process each file and subdirectory
-        for file in "$path"/*; do
-            process_folder "$file"
-        done
-    elif [[ -f "$path" ]]; then
-        # Process the file
-        local full
-        local hour
-        local min
-        local duration
+process() {
+	for filename in "$1"/*;do
+		if [[ -d $filename && $filename!="toberemoved" ]];then
+			process "$filename"
+		elif [[ -f "$filename" && ( "$filename" == *.mp3 || "$filename" == *.opus ) ]]; then
+			durationString=$(mediainfo --Inform="General;%Duration/String3%" "$filename")
+			echo "file: $filename; duration: $durationString"
+			hours=$(echo "$durationString" | awk -F ':' '{print $1}')
+			minutes=$(echo "$durationString" | awk -F ':' '{print $2}')
+			seconds=$(echo "$durationString" | awk -F ':' '{print $3}i')
+			echo "HH:MM:SS: $hours:$minutes:$seconds"
+			# Perform the calculation with floating-point precision
+			total=$(echo "$hours * 60 * 60 + $minutes * 60 + $seconds" | bc)
 
-        full=$(mediainfo --Inform="General;%Duration/String3%" "$path")
-        hour=$(echo "$full" | sed 's/[:.]//g' | awk '{print $1}')
-        min=$(echo "$full" | sed 's/[:.]//g' | awk '{print $2}')
-        duration=$((hour * 60 + min))
+			# Print the result
+			echo "Total time in seconds: $total"
 
-        echo -e "file: $path\nDuration: $duration"
-
-        # Move files shorter than the flag duration
-        if (( duration < flag )); then
-            mkdir -p "$(pwd)/toberemoved"
-            mv "$path" "$(pwd)/toberemoved/"
-        fi
-    fi
+			if (( $(echo "$total < 121" | bc -l) )); then
+				mv "$filename" "$toberemoved"
+			fi
+		fi
+	done
 }
 
-# Start processing from the current directory
-process_folder "$(pwd)"
+process "$(pwd)"
